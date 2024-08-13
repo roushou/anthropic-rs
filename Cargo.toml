@@ -2,6 +2,14 @@
 name = "anthropic-rs"
 version = "0.1.0"
 edition = "2021"
+authors = ["Roushou <hello@roushou.sh>"]
+description = "Anthropic Rust SDK"
+documentation = "https://docs.rs/anthropic-rs"
+readme = "README.md"
+homepage = "https://github.com/roushou/anthropic-rs"
+repository = "https://github.com/roushou/anthropic-rs"
+license = "MIT AND Apache-2.0"
+keywords = ["anthropic"]
 
 [dependencies]
 eyre = "0.6.12"
