@@ -1,4 +1,6 @@
+use core::fmt;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 use crate::models::model::Model;
 
@@ -149,7 +151,7 @@ pub struct MessageResponse {
     pub role: RoleResponse,
     pub content: Vec<Content>,
     pub model: Model,
-    pub stop_reason: StopReason,
+    pub stop_reason: Option<StopReason>,
     pub stop_sequence: Option<String>,
     pub usage: TokenUsage,
 }
@@ -166,6 +168,20 @@ pub enum RoleResponse {
     Assistant,
 }
 
+impl RoleResponse {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Assistant => "assistant",
+        }
+    }
+}
+
+impl Display for RoleResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum StopReason {
@@ -173,6 +189,17 @@ pub enum StopReason {
     MaxTokens,
     StopSequence,
     ToolUse,
+}
+
+impl fmt::Display for StopReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EndTurn => write!(f, "end_turn"),
+            Self::MaxTokens => write!(f, "max_tokens"),
+            Self::StopSequence => write!(f, "stop_sequence"),
+            Self::ToolUse => write!(f, "tool_use"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

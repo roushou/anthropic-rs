@@ -1,13 +1,17 @@
 use core::fmt;
+use futures_util::StreamExt;
 use reqwest::{
-    header::{HeaderMap, HeaderValue, CONTENT_TYPE},
+    header::{HeaderMap, HeaderValue, ACCEPT, CONTENT_TYPE},
     Method, RequestBuilder, Url,
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 use crate::{
-    api::message::{MessageRequest, MessageResponse},
+    api::{
+        message::{MessageRequest, MessageResponse},
+        stream::StreamEvent,
+    },
     config::Config,
     error::{AnthropicError, ApiErrorResponse},
 };
@@ -100,6 +104,47 @@ impl Client {
             .await
             .map_err(AnthropicError::from)
     }
+
+    pub async fn stream_message(&self, request: MessageRequest) -> Result<(), AnthropicError> {
+        let response = self
+            .request(Method::POST, "messages")?
+            .header(ACCEPT, "text/event-stream")
+            .json(&request)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let error = response.text().await?;
+            match serde_json::from_str::<ApiErrorResponse>(&error) {
+                Ok(api_error) => return Err(AnthropicError::Api(api_error)),
+                Err(err) => return Err(AnthropicError::JsonDeserialize(err)),
+            }
+        }
+
+        let mut stream = response.bytes_stream();
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk?;
+            let chunk_str = std::str::from_utf8(&chunk).unwrap();
+
+            for event in chunk_str.split("\n\n") {
+                let event = event.trim();
+                if event.is_empty() {
+                    continue;
+                }
+
+                let data: Vec<&str> = event.split("\n").collect();
+
+                if let Some(content) = data[1].strip_prefix("data: ") {
+                    let content = StreamEvent::from_str(content)?;
+                    if let StreamEvent::ContentBlockDelta(content) = content {
+                        print!("{}", content.delta.text);
+                    }
+                };
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -187,5 +232,27 @@ mod tests {
 
         let result = client.create_message(message.clone()).await.unwrap();
         assert_eq!(message.model, result.model);
+    }
+
+    #[tokio::test]
+    async fn should_stream_message() {
+        let config = Config::from_env().unwrap();
+        let client = Client::new(config).unwrap();
+
+        let message = MessageRequest {
+            model: Model::Claude35Sonnet,
+            max_tokens: 1024,
+            messages: vec![Message {
+                role: Role::User,
+                content: vec![Content {
+                    content_type: ContentType::Text,
+                    text: "Hello World".to_string(),
+                }],
+            }],
+            stream: Some(true),
+            ..Default::default()
+        };
+
+        client.stream_message(message.clone()).await.unwrap();
     }
 }
