@@ -24,11 +24,53 @@ pub struct Content {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageRequest {
+    /// The model that will complete your prompt e.g. Claude 3.5 Sonnet
     pub model: Model,
+
+    /// The maximum number of tokens to generate before stopping.
+    ///
+    /// Note that models may stop before reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate.
     pub max_tokens: u32,
+
+    /// Input messages.
     pub messages: Vec<Message>,
+
+    /// An object describing metadata about the request.
     pub metadata: Option<MessageMetadata>,
+
+    /// Custom text sequences that will cause the model to stop generating.
     pub stop_sequences: Option<Vec<String>>,
+
+    /// Whether to incrementally stream the response using server-sent events.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stream: Option<bool>,
+
+    /// System prompt.
+    ///
+    /// A system prompt is a way of providing context and instructions to Claude, such as specifying a particular goal or role.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system: Option<String>,
+
+    /// Amount of randomness injected into the response.
+    ///
+    /// Defaults to 1.0. Ranges from 0.0 to 1.0.
+    ///
+    /// Use temperature closer to 0.0 for analytical / multiple choice, and closer to 1.0 for creative and generative tasks.
+    /// Note that even with temperature of 0.0, the results will not be fully deterministic.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f32>,
+
+    /// Only sample from the top K options for each subsequent token.
+    ///
+    /// Used to remove "long tail" low probability responses. Learn more technical details here.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top_k: Option<i8>,
+
+    /// Use nucleus sampling.
+    ///
+    /// In nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by top_p. You should either alter temperature or top_p, but not both.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top_p: Option<i8>,
 }
 
 impl MessageRequest {
@@ -50,6 +92,31 @@ impl MessageRequest {
         self.stop_sequences = Some(stop_sequences);
         self
     }
+
+    pub fn with_stream(mut self, stream: bool) -> Self {
+        self.stream = Some(stream);
+        self
+    }
+
+    pub fn with_system(mut self, system: impl Into<String>) -> Self {
+        self.system = Some(system.into());
+        self
+    }
+
+    pub fn with_temperature(mut self, temperature: f32) -> Self {
+        self.temperature = Some(temperature);
+        self
+    }
+
+    pub fn with_top_k(mut self, top_k: i8) -> Self {
+        self.top_k = Some(top_k);
+        self
+    }
+
+    pub fn with_top_p(mut self, top_p: i8) -> Self {
+        self.top_p = Some(top_p);
+        self
+    }
 }
 
 impl Default for MessageRequest {
@@ -60,6 +127,11 @@ impl Default for MessageRequest {
             messages: Vec::new(),
             metadata: None,
             stop_sequences: None,
+            stream: None,
+            system: None,
+            temperature: None,
+            top_k: None,
+            top_p: None,
         }
     }
 }
@@ -140,6 +212,56 @@ mod tests {
         let stop_sequences: Vec<String> = vec!["foo".to_string(), "bar".to_string()];
         let request = request.with_stop_sequences(stop_sequences.clone());
         assert_eq!(request.stop_sequences, Some(stop_sequences));
+    }
+
+    #[test]
+    fn should_set_stream() {
+        let request = MessageRequest::default();
+        assert_eq!(request.stream, None);
+
+        let stream = true;
+        let request = request.with_stream(stream);
+        assert_eq!(request.stream, Some(stream));
+    }
+
+    #[test]
+    fn should_set_system() {
+        let request = MessageRequest::default();
+        assert_eq!(request.system, None);
+
+        let system = "You are an experienced software engineer";
+        let request = request.with_system(system);
+        assert_eq!(request.system, Some(system.to_string()));
+    }
+
+    #[test]
+    fn should_set_temperature() {
+        let request = MessageRequest::default();
+        assert_eq!(request.temperature, None);
+
+        let temperature: f32 = 0.9;
+        let request = request.with_temperature(temperature);
+        assert_eq!(request.temperature, Some(temperature));
+    }
+
+    #[test]
+    fn should_set_top_k() {
+        let request = MessageRequest::default();
+        assert_eq!(request.top_k, None);
+
+        let top_k: i8 = 1;
+        let request = request.with_top_k(top_k);
+        assert_eq!(request.top_k, Some(top_k));
+    }
+
+    #[test]
+    fn should_set_top_p() {
+        let request = MessageRequest::default();
+        assert_eq!(request.top_p, None);
+
+        let top_p: i8 = 1;
+        let request = request.with_top_p(top_p);
+        assert_eq!(request.top_p, Some(top_p));
     }
 
     #[test]
