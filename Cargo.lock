@@ -151,6 +151,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "example-basic-message"
+version = "0.1.0"
+dependencies = [
+ "anthropic-rs",
+ "tokio",
+]
+
+[[package]]
+name = "example-stream"
+version = "0.1.0"
+dependencies = [
+ "anthropic-rs",
+ "tokio",
+]
+
+[[package]]
 name = "eyre"
 version = "0.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
