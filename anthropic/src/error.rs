@@ -1,3 +1,5 @@
+use std::str::Utf8Error;
+
 use serde::Deserialize;
 
 use crate::client::ApiVersionError;
@@ -27,6 +29,12 @@ pub enum AnthropicError {
 
     #[error("Missing API key {0}")]
     MissingApiKey(&'static str),
+
+    #[error("Invalid Stream Event")]
+    InvalidStreamEvent,
+
+    #[error("UTF8 Error: {0}")]
+    Utf8Error(#[from] Utf8Error),
 
     #[error("Unexpected error: {0}")]
     Unexpected(String),

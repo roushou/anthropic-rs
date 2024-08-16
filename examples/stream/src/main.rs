@@ -1,9 +1,14 @@
 use anthropic_rs::{
-    api::message::{Content, ContentType, Message, MessageRequest, Role},
+    api::{
+        message::{Content, ContentType, Message, MessageRequest, Role},
+        stream::StreamEvent,
+    },
     client::Client,
     config::Config,
     models::model::Model,
 };
+use futures_util::StreamExt;
+use std::io::Write;
 
 #[tokio::main]
 async fn main() {
@@ -21,11 +26,25 @@ async fn main() {
             role: Role::User,
             content: vec![Content {
                 content_type: ContentType::Text,
-                text: "Hello World".to_string(),
+                text: "Explain the theory of relativity".to_string(),
             }],
         }],
         ..Default::default()
     };
 
-    client.stream_message(message.clone()).await.unwrap();
+    let mut stream = client.stream_message(message.clone()).await.unwrap();
+
+    while let Some(event) = stream.next().await {
+        match event {
+            Ok(event) => match event {
+                StreamEvent::ContentBlockDelta(content) => {
+                    print!("{}", content.delta.text);
+                    std::io::stdout().flush().unwrap();
+                }
+                StreamEvent::MessageStop => break,
+                _ => {}
+            },
+            Err(err) => println!("{}", err),
+        }
+    }
 }

@@ -20,7 +20,7 @@ async fn main() {
             role: Role::User,
             content: vec![Content {
                 content_type: ContentType::Text,
-                text: "Hello World".to_string(),
+                text: "Explain the theory of relativity".to_string(),
             }],
         }],
         ..Default::default()

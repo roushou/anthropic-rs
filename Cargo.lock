@@ -163,6 +163,7 @@ name = "example-stream"
 version = "0.1.0"
 dependencies = [
  "anthropic-rs",
+ "futures-util",
  "tokio",
 ]
 

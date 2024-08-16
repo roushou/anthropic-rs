@@ -1,5 +1,5 @@
 use core::fmt;
-use futures_util::StreamExt;
+use futures_util::{stream, Stream, StreamExt};
 use reqwest::{
     header::{HeaderMap, HeaderValue, ACCEPT, CONTENT_TYPE},
     Method, RequestBuilder, Url,
@@ -105,7 +105,10 @@ impl Client {
             .map_err(AnthropicError::from)
     }
 
-    pub async fn stream_message(&self, request: MessageRequest) -> Result<(), AnthropicError> {
+    pub async fn stream_message(
+        &self,
+        request: MessageRequest,
+    ) -> Result<impl Stream<Item = Result<StreamEvent, AnthropicError>>, AnthropicError> {
         let response = self
             .request(Method::POST, "messages")?
             .header(ACCEPT, "text/event-stream")
@@ -121,29 +124,35 @@ impl Client {
             }
         }
 
-        let mut stream = response.bytes_stream();
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk?;
-            let chunk_str = std::str::from_utf8(&chunk).unwrap();
-
-            for event in chunk_str.split("\n\n") {
-                let event = event.trim();
-                if event.is_empty() {
-                    continue;
-                }
-
-                let data: Vec<&str> = event.split("\n").collect();
-
-                if let Some(content) = data[1].strip_prefix("data: ") {
-                    let content = StreamEvent::from_str(content)?;
-                    if let StreamEvent::ContentBlockDelta(content) = content {
-                        print!("{}", content.delta.text);
-                    }
-                };
+        Ok(response.bytes_stream().flat_map(move |chunk| match chunk {
+            Ok(bytes) => {
+                let events = Self::parse_stream_chunk(&bytes);
+                stream::iter(events)
             }
-        }
+            Err(err) => stream::iter(vec![Err(AnthropicError::from(err))]),
+        }))
+    }
 
-        Ok(())
+    fn parse_stream_chunk(bytes: &[u8]) -> Vec<Result<StreamEvent, AnthropicError>> {
+        let chunk_str = match std::str::from_utf8(bytes).map_err(AnthropicError::Utf8Error) {
+            Ok(chunk_str) => chunk_str,
+            Err(err) => return vec![Err(err)],
+        };
+        chunk_str
+            .split("\n\n")
+            .filter(|event| !event.trim().is_empty())
+            .map(|event| {
+                event
+                    .lines()
+                    .find(|line| line.starts_with("data: "))
+                    .and_then(|line| line.strip_prefix("data: "))
+                    .ok_or(AnthropicError::InvalidStreamEvent)
+                    .and_then(|content| {
+                        StreamEvent::from_str(content)
+                            .map_err(|_| AnthropicError::InvalidStreamEvent)
+                    })
+            })
+            .collect()
     }
 }
 
