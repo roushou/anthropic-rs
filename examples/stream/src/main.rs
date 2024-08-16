@@ -35,16 +35,14 @@ async fn main() {
     let mut stream = client.stream_message(message.clone()).await.unwrap();
 
     while let Some(event) = stream.next().await {
+        let event = event.unwrap();
         match event {
-            Ok(event) => match event {
-                StreamEvent::ContentBlockDelta(content) => {
-                    print!("{}", content.delta.text);
-                    std::io::stdout().flush().unwrap();
-                }
-                StreamEvent::MessageStop => break,
-                _ => {}
-            },
-            Err(err) => println!("{}", err),
+            StreamEvent::ContentBlockDelta(content) => {
+                print!("{}", content.delta.text);
+                std::io::stdout().flush().unwrap();
+            }
+            StreamEvent::MessageStop => break,
+            _ => {}
         }
     }
 }
