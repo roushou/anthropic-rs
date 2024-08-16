@@ -16,6 +16,14 @@
 
 This is an unofficial Rust SDK for the Anthropic API.
 
+## Installation
+
+Add `anthropic-rs` as a dependency to your `Cargo.toml`
+
+```sh
+$ cargo add anthropic-rs
+```
+
 ## Usage
 
 An example to stream messages.
