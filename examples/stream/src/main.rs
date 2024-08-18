@@ -20,7 +20,7 @@ async fn main() {
 
     let message = MessageRequest {
         model: Model::Claude35Sonnet,
-        stream: Some(true),
+        stream: true,
         max_tokens: 1024,
         messages: vec![Message {
             role: Role::User,

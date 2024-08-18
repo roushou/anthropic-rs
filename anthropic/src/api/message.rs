@@ -44,8 +44,7 @@ pub struct MessageRequest {
     pub stop_sequences: Option<Vec<String>>,
 
     /// Whether to incrementally stream the response using server-sent events.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stream: Option<bool>,
+    pub stream: bool,
 
     /// System prompt.
     ///
@@ -96,7 +95,7 @@ impl MessageRequest {
     }
 
     pub fn with_stream(mut self, stream: bool) -> Self {
-        self.stream = Some(stream);
+        self.stream = stream;
         self
     }
 
@@ -129,7 +128,7 @@ impl Default for MessageRequest {
             messages: Vec::new(),
             metadata: None,
             stop_sequences: None,
-            stream: None,
+            stream: false,
             system: None,
             temperature: None,
             top_k: None,
@@ -244,11 +243,13 @@ mod tests {
     #[test]
     fn should_set_stream() {
         let request = MessageRequest::default();
-        assert_eq!(request.stream, None);
+        assert_eq!(request.stream, false);
 
-        let stream = true;
-        let request = request.with_stream(stream);
-        assert_eq!(request.stream, Some(stream));
+        let request = request.with_stream(true);
+        assert_eq!(request.stream, true);
+
+        let request = request.with_stream(false);
+        assert_eq!(request.stream, false);
     }
 
     #[test]
