@@ -31,6 +31,8 @@ pub struct MessageRequest {
 
     /// The maximum number of tokens to generate before stopping.
     ///
+    /// Defaults to 1000 tokens.
+    ///
     /// Note that models may stop before reaching this maximum. This parameter only specifies the absolute maximum number of tokens to generate.
     pub max_tokens: u32,
 
@@ -124,7 +126,7 @@ impl Default for MessageRequest {
     fn default() -> Self {
         Self {
             model: Model::Claude35Sonnet,
-            max_tokens: 0,
+            max_tokens: 1000,
             messages: Vec::new(),
             metadata: None,
             stop_sequences: None,
