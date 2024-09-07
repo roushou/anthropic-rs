@@ -14,6 +14,9 @@
 [actions-badge]: https://github.com/roushou/anthropic-rs/workflows/CI/badge.svg
 [actions-url]: https://github.com/roushou/anthropic-rs/actions?query=workflow%3ACI+branch%3Amaster
 
+> [!NOTE]
+> The repository has been moved to [https://github.com/roushou/mesh](https://github.com/roushou/mesh/tree/main/anthropic)
+
 This is an unofficial Rust SDK for the Anthropic API.
 
 ## Installation
